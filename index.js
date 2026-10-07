@@ -1,18 +1,13 @@
 import express from 'express';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { kv } from '@vercel/kv';
 
 const app = express();
 app.use(express.json());
 
 // ============================
-// ESTADO
+// ESTADO INICIAL (default)
 // ============================
-let state = {
+const DEFAULT_STATE = {
     assistenteMira: false,
     desaceleracao: false,
     ancoragem: false,
@@ -27,23 +22,48 @@ let state = {
     suavidade: 0.35
 };
 
-let commandQueue = [];
+// ============================
+// LÊ O ESTADO DO KV
+// ============================
+async function getState() {
+    try {
+        const stored = await kv.get('state');
+        if (stored && typeof stored === 'object') {
+            return { ...DEFAULT_STATE, ...stored };
+        }
+        return { ...DEFAULT_STATE };
+    } catch (e) {
+        console.error('KV get error:', e);
+        return { ...DEFAULT_STATE };
+    }
+}
 
 // ============================
-// POLLING (Luau)
+// SALVA O ESTADO NO KV
 // ============================
-app.get('/poll', (req, res) => {
-    const cmds = [...commandQueue];
-    commandQueue = [];
+async function setState(state) {
+    try {
+        await kv.set('state', state);
+    } catch (e) {
+        console.error('KV set error:', e);
+    }
+}
+
+// ============================
+// POLLING (Luau lê aqui)
+// ============================
+app.get('/poll', async (req, res) => {
+    const state = await getState();
     res.setHeader('Cache-Control', 'no-store');
-    res.json({ state, commands: cmds });
+    res.json({ state, commands: [] });
 });
 
 // ============================
-// COMANDO (painel)
+// COMANDO (painel manda aqui)
 // ============================
-app.post('/command', (req, res) => {
+app.post('/command', async (req, res) => {
     const { type, value } = req.body || {};
+    let state = await getState();
 
     if (type === 'toggle' && typeof state[value] === 'boolean') {
         state[value] = !state[value];
@@ -53,30 +73,28 @@ app.post('/command', (req, res) => {
         console.log('[SET]', value.key, '=', value.val);
     }
 
-    commandQueue.push({ type, value, ts: Date.now() });
+    await setState(state);
     res.setHeader('Cache-Control', 'no-store');
     res.json({ ok: true, state });
 });
 
 // ============================
-// STATE (painel)
+// STATE (painel lê aqui)
 // ============================
-app.get('/state', (req, res) => {
+app.get('/state', async (req, res) => {
+    const state = await getState();
     res.setHeader('Cache-Control', 'no-store');
     res.json(state);
 });
 
 // ============================
-// SERVE O HTML DA RAIZ
+// SERVE O HTML
 // ============================
 app.get('/', (req, res) => {
-    const htmlPath = path.join(__dirname, 'index.html');
-    if (fs.existsSync(htmlPath)) {
-        res.setHeader('Content-Type', 'text/html');
-        res.send(fs.readFileSync(htmlPath, 'utf-8'));
-    } else {
-        res.status(404).send('index.html não encontrado');
-    }
+    res.setHeader('Content-Type', 'text/html');
+    res.send(PAINEL_HTML);
 });
+
+const PAINEL_HTML = `COLE_AQUI_O_HTML`;
 
 export default app;
