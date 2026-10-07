@@ -193,8 +193,17 @@ async function pollState() {
     }
 }
 const cachedState = readCachedState();
-if (cachedState)
+if (cachedState) {
     renderState(cachedState);
+    // Ao reabrir o painel, reenviar os toggles em cache para reidratar a memória do servidor.
+    for (const input of toggleInputs) {
+        const key = input.dataset.key;
+        if (isToggleKey(key) && typeof cachedState[key] === 'boolean' && !(key in pendingState)) {
+            pendingState[key] = cachedState[key];
+        }
+    }
+    savePendingState();
+}
 for (const [key, value] of Object.entries(pendingState)) {
     if (isToggleKey(key) && typeof value === 'boolean') {
         const input = toggleInputs.find((candidate) => candidate.dataset.key === key);

@@ -1,5 +1,4 @@
 import express, { type Request, type Response } from 'express';
-import { kv } from '@vercel/kv';
 
 interface AppState {
   assistenteMira: boolean;
@@ -31,6 +30,10 @@ const DEFAULT_STATE: AppState = {
   suavidade: 0.35,
 };
 
+// Fallback sem banco: fica disponível enquanto esta instância serverless estiver ativa.
+// Uma reinicialização ou outra instância pode iniciar com os valores padrão.
+let memoryState: AppState = { ...DEFAULT_STATE };
+
 type ToggleKey = {
   [K in keyof AppState]: AppState[K] extends boolean ? K : never;
 }[keyof AppState];
@@ -52,42 +55,20 @@ function isToggleKey(value: unknown): value is ToggleKey {
   return typeof value === 'string' && TOGGLE_KEYS.has(value as ToggleKey);
 }
 
-function isStateKey(value: unknown): value is keyof AppState {
-  return typeof value === 'string' && value in DEFAULT_STATE;
-}
-
 const app = express();
 app.use(express.json());
 
-async function getState(): Promise<AppState> {
-  try {
-    const stored = await kv.get<Partial<AppState>>('state');
-    if (stored && typeof stored === 'object') {
-      return { ...DEFAULT_STATE, ...stored };
-    }
-  } catch (error) {
-    console.error('KV get error:', error);
-  }
-  return { ...DEFAULT_STATE };
+function getState(): AppState {
+  return { ...memoryState };
 }
 
-async function setState(state: AppState): Promise<void> {
-  try {
-    await kv.set('state', state);
-  } catch (error) {
-    console.error('KV set error:', error);
-    throw error;
-  }
-}
-
-function sendServerError(res: Response, error: unknown): void {
-  console.error('State update error:', error);
-  res.status(503).json({ ok: false, error: 'Não foi possível salvar o estado.' });
+function setState(state: AppState): void {
+  memoryState = { ...state };
 }
 
 // O jogo continua lendo o estado pelo endpoint existente.
 app.get('/poll', async (_req: Request, res: Response) => {
-  const state = await getState();
+  const state = getState();
   res.setHeader('Cache-Control', 'no-store');
   res.json({ state, commands: [] });
 });
@@ -96,7 +77,7 @@ app.get('/poll', async (_req: Request, res: Response) => {
 // A interface atual usa "set" com o valor desejado, evitando inversões por corrida.
 app.post('/command', async (req: Request, res: Response) => {
   const body = req.body as { type?: unknown; value?: unknown } | undefined;
-  const state = await getState();
+  const state = getState();
   const value = body?.value;
 
   if (body?.type === 'toggle' && isToggleKey(value)) {
@@ -126,17 +107,13 @@ app.post('/command', async (req: Request, res: Response) => {
     return;
   }
 
-  try {
-    await setState(state);
-    res.setHeader('Cache-Control', 'no-store');
-    res.json({ ok: true, state });
-  } catch (error) {
-    sendServerError(res, error);
-  }
+  setState(state);
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ ok: true, state });
 });
 
 app.get('/state', async (_req: Request, res: Response) => {
-  const state = await getState();
+  const state = getState();
   res.setHeader('Cache-Control', 'no-store');
   res.json(state);
 });
