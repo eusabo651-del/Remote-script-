@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>PROXY ANDROID 3.1</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: #000;
+    color: #fff;
+    font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 20px 12px;
+  }
+  .panel {
+    width: 100%;
+    max-width: 420px;
+    background: linear-gradient(180deg, #1a0f2e 0%, #14082a 100%);
+    border: 1px solid #2d1b4e;
+    border-radius: 18px;
+    padding: 18px 16px 24px;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #2d1b4e;
+    margin-bottom: 18px;
+  }
+  .menu-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #2d1b4e;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .menu-icon span {
+    width: 16px;
+    height: 2px;
+    background: #a78bfa;
+    border-radius: 2px;
+  }
+  .title {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #a78bfa;
+  }
+  .online {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: #4ade80;
+    font-weight: 600;
+  }
+  .online .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 8px #4ade80;
+  }
+  .online.off { color: #ef4444; }
+  .online.off .dot { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+
+  .category {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 22px 0 12px;
+  }
+  .category .bar {
+    width: 3px;
+    height: 16px;
+    background: #a78bfa;
+    border-radius: 3px;
+  }
+  .category .name {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #a78bfa;
+  }
+
+  .item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 12px 0;
+    gap: 12px;
+  }
+  .item-text { flex: 1; min-width: 0; }
+  .item-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 3px;
+  }
+  .item-desc {
+    font-size: 11px;
+    color: #8b8b9e;
+    line-height: 1.35;
+  }
+
+  .switch {
+    position: relative;
+    width: 46px;
+    height: 26px;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    inset: 0;
+    background: #3a3a4a;
+    border-radius: 26px;
+    cursor: pointer;
+    transition: 0.25s;
+  }
+  .slider::before {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 3px;
+    top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: 0.25s;
+  }
+  .switch input:checked + .slider { background: #7c3aed; }
+  .switch input:checked + .slider::before { transform: translateX(20px); }
+
+  .slider-row {
+    padding: 14px 0;
+    border-bottom: 1px solid #1e1236;
+  }
+  .slider-row:last-child { border-bottom: none; }
+  .slider-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .slider-top .label {
+    font-size: 13px;
+    color: #fff;
+    font-weight: 600;
+  }
+  .slider-top .val {
+    font-size: 12px;
+    color: #a78bfa;
+    font-weight: 700;
+  }
+  input[type=range] {
+    width: 100%;
+    height: 4px;
+    background: #2d1b4e;
+    border-radius: 4px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #a78bfa;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(167,139,250,0.6);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #a78bfa;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+  }
+</style>
+</head>
+<body>
+  <div class="panel">
+    <div class="header">
+      <div class="menu-icon"><span></span><span></span><span></span></div>
+      <div class="title">PROXY ANDROID 3.1</div>
+      <div class="online" id="status"><span class="dot"></span><span id="status-text">Online</span></div>
+    </div>
+
+    <div class="category"><div class="bar"></div><div class="name">FUNÇÕES DE MIRA</div></div>
+
+    <div class="item">
+      <div class="item-text">
+        <div class="item-title">Assistente de Mira</div>
+        <div class="item-desc">Ajuda a centralizar a câmera no alvo mais próximo dentro do FOV.</div>
+      </div>
+      <label class="switch"><input type="checkbox" data-key="assistenteMira"><span class="slider"></span></label>
+    </div>
+
+    <div class="item">
+      <div class="item-text">
+        <div class="item-title">Desaceleração</div>
+        <div class="item-desc">Reduz a velocidade dos alvos enquanto estiver ativo.</div>
+      </div>
+      <label class="switch"><input type="checkbox" data-key="desaceleracao"><span class="slider"></span></label>
+    </div>
+
+    <div class="item">
+      <div class="item-text">
+        <div class="item-title">Ancoragem</div>
+        <div class="item-desc">Trava os alvos no lugar enquanto estiver ativo.</div>
+      </div>
+      <label class="switch"><input type="checkbox" data-key="ancoragem"><span class="slider"></span></label>
+    </div>
+
+    <div class="category"><div class="bar"></div><div class="name">FUNÇÕES DE MARCADORES</div></div>
+
+    <div class="item">
+      <div class="item-text">
+        <div class="item-title">Marcador Caixa</div>
+        <div class="item-desc">Desenha uma caixa em volta dos alvos.</div>
+      </div>
+      <label class="switch"><input type="checkbox" data-key="marcadorCaixa"><span class="slider"></span></label>
+    </div>
+
+    <div class="item">
+      <div class="item-text">
+        <div class="item-title">Marcador Círculo</div>
+        <div class="item-desc">Desenha um círculo sobre o corpo dos alvos.</div>
+      </div>
+      <label class="switch"><input type="checkbox" data-key="marcadorCirculo"><span class="slider"></span></label>
+    </div>
+
+    <div class="item">
+      <div class="item-text">
+        <div class="item-title">Marcador Vida</div>
+        <div class="item-desc">Mostra a barra de vida dos alvos.</div>
+      </div>
+      <label class="switch"><input type="checkbox" data-key="marcadorVida"><span class="slider"></span></label>
+    </div>
+
+    <div class="item">
+      <div class="item-text">
+        <div class="item-title">Marcador Linha</div>
+        <div class="item-desc">Linha do topo da tela até cada alvo.</div>
+      </div>
+      <label class="switch"><input type="checkbox" data-key="marcadorLinha"><span class="slider"></span></label>
+    </div>
+
+    <div class="item">
+      <div class="item-text">
+        <div class="item-title">Marcador Seta</div>
+        <div class="item-desc">Seta em cima dos alvos, visível até através de paredes.</div>
+      </div>
+      <label class="switch"><input type="checkbox" data-key="marcadorSeta"><span class="slider"></span></label>
+    </div>
+
+    <div class="item">
+      <div class="item-text">
+        <div class="item-title">Marcador Minimapa</div>
+        <div class="item-desc">Mostra os alvos como pontos no minimapa.</div>
+      </div>
+      <label class="switch"><input type="checkbox" data-key="marcadorMinimapa"><span class="slider"></span></label>
+    </div>
+
+    <div class="category"><div class="bar"></div><div class="name">FUNÇÕES DE AMBIENTE</div></div>
+
+    <div class="item">
+      <div class="item-text">
+        <div class="item-title">Modo Stream</div>
+        <div class="item-desc">Esconde toda a interface da tela para gravações.</div>
+      </div>
+      <label class="switch"><input type="checkbox" data-key="modoStream"><span class="slider"></span></label>
+    </div>
+
+    <div class="slider-row">
+      <div class="slider-top">
+        <span class="label">Raio do FOV</span>
+        <span class="val" id="raioFoco-val">120</span>
+      </div>
+      <input type="range" id="raioFoco" min="30" max="500" value="120">
+    </div>
+
+    <div class="slider-row">
+      <div class="slider-top">
+        <span class="label">Suavidade</span>
+        <span class="val" id="suavidade-val">0.35</span>
+      </div>
+      <input type="range" id="suavidade" min="0.05" max="1" step="0.05" value="0.35">
+    </div>
+  </div>
+
+<script>
+const API = '';
+
+const toggles = document.querySelectorAll('input[type=checkbox][data-key]');
+const raioFoco = document.getElementById('raioFoco');
+const suavidade = document.getElementById('suavidade');
+const raioFocoVal = document.getElementById('raioFoco-val');
+const suavidadeVal = document.getElementById('suavidade-val');
+const statusEl = document.getElementById('status');
+const statusText = document.getElementById('status-text');
+
+let isOnline = false;
+
+function setOnline(ok) {
+    if (ok === isOnline) return;
+    isOnline = ok;
+    statusEl.classList.toggle('off', !ok);
+    statusText.textContent = ok ? 'Online' : 'Offline';
+}
+
+async function sendCommand(type, value) {
+    try {
+        const r = await fetch(API + '/command', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type, value })
+        });
+        if (!r.ok) throw new Error('bad status');
+        setOnline(true);
+    } catch (e) {
+        setOnline(false);
+    }
+}
+
+toggles.forEach(t => {
+    t.addEventListener('change', () => {
+        sendCommand('toggle', t.dataset.key);
+    });
+});
+
+raioFoco.addEventListener('input', () => {
+    raioFocoVal.textContent = raioFoco.value;
+});
+raioFoco.addEventListener('change', () => {
+    sendCommand('set', { key: 'raioFoco', val: Number(raioFoco.value) });
+});
+
+suavidade.addEventListener('input', () => {
+    suavidadeVal.textContent = suavidade.value;
+});
+suavidade.addEventListener('change', () => {
+    sendCommand('set', { key: 'suavidade', val: Number(suavidade.value) });
+});
+
+async function pollState() {
+    try {
+        const r = await fetch(API + '/state', { cache: 'no-store' });
+        if (!r.ok) throw new Error('bad status');
+        const s = await r.json();
+        setOnline(true);
+
+        for (const t of toggles) {
+            const k = t.dataset.key;
+            if (s[k] !== undefined && t.checked !== s[k]) {
+                t.checked = s[k];
+            }
+        }
+        if (s.raioFoco !== undefined && document.activeElement !== raioFoco) {
+            raioFoco.value = s.raioFoco;
+            raioFocoVal.textContent = s.raioFoco;
+        }
+        if (s.suavidade !== undefined && document.activeElement !== suavidade) {
+            suavidade.value = s.suavidade;
+            suavidadeVal.textContent = s.suavidade;
+        }
+    } catch (e) {
+        setOnline(false);
+    }
+}
+
+pollState();
+setInterval(pollState, 500);
+</script>
+</body>
+</html>
