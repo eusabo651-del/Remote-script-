@@ -13,6 +13,7 @@ let isOnline = false;
 let isSyncing = false;
 let isProcessingPending = false;
 let pendingState = readPendingState();
+const lastRecoveryAttempt = new Map();
 function isToggleKey(value) {
     return Boolean(value && toggleInputs.some((input) => input.dataset.key === value));
 }
@@ -184,6 +185,28 @@ async function pollState() {
         if (!response.ok)
             throw new Error('Falha ao sincronizar estado.');
         const state = (await response.json());
+        const cached = readCachedState();
+        let needsRecovery = false;
+        if (cached) {
+            const now = Date.now();
+            for (const input of toggleInputs) {
+                const key = input.dataset.key;
+                if (isToggleKey(key) &&
+                    typeof cached[key] === 'boolean' &&
+                    state[key] !== cached[key] &&
+                    now - (lastRecoveryAttempt.get(key) ?? 0) >= 4000) {
+                    pendingState[key] = cached[key];
+                    lastRecoveryAttempt.set(key, now);
+                    needsRecovery = true;
+                }
+            }
+        }
+        if (needsRecovery) {
+            savePendingState();
+            void processPendingState();
+            setOnline(true);
+            return;
+        }
         renderState(state);
         saveCachedState(state);
         setOnline(true);
