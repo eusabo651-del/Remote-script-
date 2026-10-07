@@ -1,9 +1,20 @@
 {
   "name": "remotescript",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.client.json && cp dist/client.js app.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "check": "npm run typecheck && npm run build"
+  },
   "dependencies": {
-    "express": "^4.18.2",
-    "@vercel/kv": "^2.0.0"
+    "@vercel/kv": "^2.0.0",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
   }
 }

@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>SCRIPT REMOTE 3.1</title>
+<meta name="theme-color" content="#14082a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Script Remote">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body {
@@ -301,93 +306,6 @@
     </div>
   </div>
 
-<script>
-const API = '';
-
-const toggles = document.querySelectorAll('input[type=checkbox][data-key]');
-const raioFoco = document.getElementById('raioFoco');
-const suavidade = document.getElementById('suavidade');
-const raioFocoVal = document.getElementById('raioFoco-val');
-const suavidadeVal = document.getElementById('suavidade-val');
-const statusEl = document.getElementById('status');
-const statusText = document.getElementById('status-text');
-
-let isOnline = false;
-let isSyncing = false;
-
-function setOnline(ok) {
-    if (ok === isOnline) return;
-    isOnline = ok;
-    statusEl.classList.toggle('off', !ok);
-    statusText.textContent = ok ? 'Online' : 'Offline';
-}
-
-async function sendCommand(type, value) {
-    if (isSyncing) return;
-    try {
-        const r = await fetch(API + '/command', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type, value })
-        });
-        if (!r.ok) throw new Error('bad status');
-        setOnline(true);
-    } catch (e) {
-        setOnline(false);
-    }
-}
-
-toggles.forEach(t => {
-    t.addEventListener('change', () => {
-        sendCommand('toggle', t.dataset.key);
-    });
-});
-
-raioFoco.addEventListener('input', () => {
-    raioFocoVal.textContent = raioFoco.value;
-});
-raioFoco.addEventListener('change', () => {
-    sendCommand('set', { key: 'raioFoco', val: Number(raioFoco.value) });
-});
-
-suavidade.addEventListener('input', () => {
-    suavidadeVal.textContent = suavidade.value;
-});
-suavidade.addEventListener('change', () => {
-    sendCommand('set', { key: 'suavidade', val: Number(suavidade.value) });
-});
-
-async function pollState() {
-    try {
-        const r = await fetch(API + '/state', { cache: 'no-store' });
-        if (!r.ok) throw new Error('bad status');
-        const s = await r.json();
-        setOnline(true);
-
-        isSyncing = true;
-        for (const t of toggles) {
-            const k = t.dataset.key;
-            if (s[k] !== undefined && t.checked !== s[k]) {
-                t.checked = s[k];
-            }
-        }
-        if (s.raioFoco !== undefined && document.activeElement !== raioFoco) {
-            raioFoco.value = s.raioFoco;
-            raioFocoVal.textContent = s.raioFoco;
-        }
-        if (s.suavidade !== undefined && document.activeElement !== suavidade) {
-            suavidade.value = s.suavidade;
-            suavidadeVal.textContent = s.suavidade;
-        }
-        isSyncing = false;
-    } catch (e) {
-        isSyncing = false;
-        setOnline(false);
-    }
-}
-
-pollState();
-setInterval(pollState, 500);
-</script>
+<script type="module" src="/app.js"></script>
 </body>
 </html>
